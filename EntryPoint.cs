@@ -3,16 +3,14 @@ using HarmonyLib;
 using Il2CppScheduleOne;
 using Il2CppScheduleOne.Economy;
 using Il2CppScheduleOne.GameTime;
-using Il2CppScheduleOne.NPCs;
 using Il2CppScheduleOne.Product;
 using Il2CppSystem.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-using Entry = Il2CppScheduleOne.Product.ProductList.Entry;
+[assembly: MelonInfo(typeof(RevealCounterChance.EntryPoint), "RevealCounterChance", "1.0.1", "Johnny Johnny")]
 
-[assembly: MelonInfo(typeof(RevealCounterChance.EntryPoint), "RevealCounterChance", "1.0.0", "Johnny Johnny")]
-
+// This was made in like 30 minutes, please no judging thank you :)
 namespace RevealCounterChance
 {
     public class EntryPoint : MelonMod
@@ -81,22 +79,43 @@ namespace RevealCounterChance
         }
     }
     
-    // This is horrendous
-    // It should not be done on every update, but it really doesn't matter that much
-    // It's a super simple fix, just make it happen on Open, ChangePrice, and ChangeQuantity
     [HarmonyPatch(typeof(Il2CppScheduleOne.UI.Phone.CounterofferInterface))]
-    [HarmonyPatch("Update")]
-    class CounterOfferUpdatePatch
+    class CounterofferInterfacePatches
     {
-        static void Postfix(Il2CppScheduleOne.UI.Phone.CounterofferInterface __instance)
+        private static void UpdateConfirmButtonText(Il2CppScheduleOne.UI.Phone.CounterofferInterface instance)
         {
-            Button confirmButton = __instance.ConfirmButton;
+            Button confirmButton = instance.ConfirmButton;
             Text confirmButtonText = confirmButton.GetComponentInChildren<Text>();
+        
+            float chance = EntryPoint.EvaluateCounterofferPercentage(
+                instance.selectedProduct,
+                instance.quantity,
+                instance.price,
+                instance.conversation.sender.GetComponent<Customer>()
+            );
+        
+            confirmButtonText.text = $"Send ({Mathf.RoundToInt(chance)}%)";
+        }
 
-            float chance = EntryPoint.EvaluateCounterofferPercentage(__instance.selectedProduct, __instance.quantity, __instance.price, __instance.conversation.sender.GetComponent<Customer>());
-            chance = Mathf.RoundToInt(chance);
-            
-            confirmButtonText.text = $"Send ({chance}%)";
+        [HarmonyPatch("Open")]
+        [HarmonyPostfix]
+        static void PostOpenPatch(Il2CppScheduleOne.UI.Phone.CounterofferInterface __instance)
+        {
+            UpdateConfirmButtonText(__instance);
+        }
+
+        [HarmonyPatch("ChangePrice")]
+        [HarmonyPostfix]
+        static void PostPriceChangePatch(Il2CppScheduleOne.UI.Phone.CounterofferInterface __instance)
+        {
+            UpdateConfirmButtonText(__instance);
+        }
+
+        [HarmonyPatch("ChangeQuantity")]
+        [HarmonyPostfix]
+        static void PostQuantityChangePatch(Il2CppScheduleOne.UI.Phone.CounterofferInterface __instance)
+        {
+            UpdateConfirmButtonText(__instance);
         }
     }
 }
