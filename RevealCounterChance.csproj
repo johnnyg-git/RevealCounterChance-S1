@@ -39,6 +39,9 @@
         <Reference Include="Assembly-CSharp">
           <HintPath>lib\Schedule I_DataNonIl2cpp\Managed\Assembly-CSharp.dll</HintPath>
         </Reference>
+        <Reference Include="FishNet.Runtime">
+          <HintPath>lib\Schedule I_DataNonIl2cpp\Managed\FishNet.Runtime.dll</HintPath>
+        </Reference>
         <Reference Include="MelonLoader">
           <HintPath>lib\MelonLoader.dll</HintPath>
         </Reference>

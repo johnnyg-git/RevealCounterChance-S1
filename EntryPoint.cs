@@ -1,10 +1,13 @@
-﻿using MelonLoader;
+﻿using System;
+using MelonLoader;
 using HarmonyLib;
 using ScheduleOne;
 using ScheduleOne.Economy;
 using ScheduleOne.GameTime;
 using ScheduleOne.Product;
 using System.Collections.Generic;
+using System.Reflection;
+using ScheduleOne.Messaging;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -16,11 +19,31 @@ namespace RevealCounterChance
     public class EntryPoint : MelonMod
     {
         public HarmonyLib.Harmony harmony;
+
+        public static FieldInfo cachedCustomerDataField;
+        public static FieldInfo cachedSelectedProductField;
+        public static FieldInfo cachedQuanityField;
+        public static FieldInfo cachedPriceField;
+        public static FieldInfo cachedConversationField;
         
         public override void OnInitializeMelon()
         {
             harmony = new HarmonyLib.Harmony("com.johnnyjohnny.revealcounterchance");
             harmony.PatchAll();
+            
+            // Customer.customerData
+            cachedCustomerDataField = typeof(Customer).GetField("customerData", BindingFlags.Instance | BindingFlags.NonPublic);
+            
+            cachedSelectedProductField = typeof(ScheduleOne.UI.Phone.CounterofferInterface).GetField("selectedProduct", BindingFlags.Instance | BindingFlags.NonPublic);
+            
+            cachedQuanityField = typeof(ScheduleOne.UI.Phone.CounterofferInterface).GetField("quantity", BindingFlags.Instance | BindingFlags.NonPublic);
+            
+            cachedPriceField = typeof(ScheduleOne.UI.Phone.CounterofferInterface).GetField("price", BindingFlags.Instance | BindingFlags.NonPublic);
+            
+            cachedConversationField = typeof(ScheduleOne.UI.Phone.CounterofferInterface).GetField("conversation", BindingFlags.Instance | BindingFlags.NonPublic);
+            
+            if (cachedCustomerDataField == null)
+                throw new MissingFieldException("customerData field not found");
         }
         
         
@@ -29,8 +52,10 @@ namespace RevealCounterChance
         // make it work correctly, so I got our lovely LLM overloads to do it for me.
         public static float EvaluateCounterofferPercentage(ProductDefinition product, int quantity, float price, Customer customer)
         {
-            float adjustedWeeklySpend = customer.customerData.GetAdjustedWeeklySpend(customer.NPC.RelationData.RelationDelta / 5f);
-            List<EDay> orderDays = customer.customerData.GetOrderDays(customer.CurrentAddiction, customer.NPC.RelationData.RelationDelta / 5f);
+            CustomerData customerData = (CustomerData)cachedCustomerDataField.GetValue(customer);
+            
+            float adjustedWeeklySpend = customerData.GetAdjustedWeeklySpend(customer.NPC.RelationData.RelationDelta / 5f);
+            List<EDay> orderDays = customerData.GetOrderDays(customer.CurrentAddiction, customer.NPC.RelationData.RelationDelta / 5f);
             float num = adjustedWeeklySpend / orderDays.Count;
 
             // Immediate rejection based on price threshold
@@ -41,7 +66,7 @@ namespace RevealCounterChance
                 Registry.GetItem<ProductDefinition>(customer.OfferedContractInfo.Products.entries[0].ProductID),
                 customer.OfferedContractInfo.Payment / customer.OfferedContractInfo.Products.entries[0].Quantity
             );
-            float productEnjoyment = customer.GetProductEnjoyment(product, customer.customerData.Standards.GetCorrespondingQuality());
+            float productEnjoyment = customer.GetProductEnjoyment(product, customerData.Standards.GetCorrespondingQuality());
             float num2 = Mathf.InverseLerp(-1f, 1f, productEnjoyment);
             float valueProposition2 = Customer.GetValueProposition(product, price / quantity);
             float num3 = Mathf.Pow(quantity / (float)customer.OfferedContractInfo.Products.entries[0].Quantity, 0.6f);
@@ -86,12 +111,17 @@ namespace RevealCounterChance
         {
             Button confirmButton = instance.ConfirmButton;
             Text confirmButtonText = confirmButton.GetComponentInChildren<Text>();
+            
+            ProductDefinition productDefinition = (ProductDefinition)EntryPoint.cachedSelectedProductField.GetValue(instance);
+            int quantity = (int)EntryPoint.cachedQuanityField.GetValue(instance);
+            float price = (float)EntryPoint.cachedPriceField.GetValue(instance);
+            MSGConversation conversation = (MSGConversation)EntryPoint.cachedConversationField.GetValue(instance);
         
             float chance = EntryPoint.EvaluateCounterofferPercentage(
-                instance.selectedProduct,
-                instance.quantity,
-                instance.price,
-                instance.conversation.sender.GetComponent<Customer>()
+                productDefinition,
+                quantity,
+                price,
+                conversation.sender.GetComponent<Customer>()
             );
         
             confirmButtonText.text = $"Send ({Mathf.RoundToInt(chance)}%)";
