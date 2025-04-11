@@ -1,10 +1,10 @@
 ﻿using MelonLoader;
 using HarmonyLib;
-using Il2CppScheduleOne;
-using Il2CppScheduleOne.Economy;
-using Il2CppScheduleOne.GameTime;
-using Il2CppScheduleOne.Product;
-using Il2CppSystem.Collections.Generic;
+using ScheduleOne;
+using ScheduleOne.Economy;
+using ScheduleOne.GameTime;
+using ScheduleOne.Product;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -79,10 +79,10 @@ namespace RevealCounterChance
         }
     }
     
-    [HarmonyPatch(typeof(Il2CppScheduleOne.UI.Phone.CounterofferInterface))]
+    [HarmonyPatch(typeof(ScheduleOne.UI.Phone.CounterofferInterface))]
     class CounterofferInterfacePatches
     {
-        private static void UpdateConfirmButtonText(Il2CppScheduleOne.UI.Phone.CounterofferInterface instance)
+        private static void UpdateConfirmButtonText(ScheduleOne.UI.Phone.CounterofferInterface instance)
         {
             Button confirmButton = instance.ConfirmButton;
             Text confirmButtonText = confirmButton.GetComponentInChildren<Text>();
@@ -99,21 +99,21 @@ namespace RevealCounterChance
 
         [HarmonyPatch("Open")]
         [HarmonyPostfix]
-        static void PostOpenPatch(Il2CppScheduleOne.UI.Phone.CounterofferInterface __instance)
+        static void PostOpenPatch(ScheduleOne.UI.Phone.CounterofferInterface __instance)
         {
             UpdateConfirmButtonText(__instance);
         }
 
         [HarmonyPatch("ChangePrice")]
         [HarmonyPostfix]
-        static void PostPriceChangePatch(Il2CppScheduleOne.UI.Phone.CounterofferInterface __instance)
+        static void PostPriceChangePatch(ScheduleOne.UI.Phone.CounterofferInterface __instance)
         {
             UpdateConfirmButtonText(__instance);
         }
 
         [HarmonyPatch("ChangeQuantity")]
         [HarmonyPostfix]
-        static void PostQuantityChangePatch(Il2CppScheduleOne.UI.Phone.CounterofferInterface __instance)
+        static void PostQuantityChangePatch(ScheduleOne.UI.Phone.CounterofferInterface __instance)
         {
             UpdateConfirmButtonText(__instance);
         }
